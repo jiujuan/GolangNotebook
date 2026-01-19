@@ -1,2 +1,2 @@
-# golang-library-learning
-learn useful library of golang
+# Golang Notebook
+Go学习与进阶之路
