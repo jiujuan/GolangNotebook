@@ -10,6 +10,8 @@ Go 编程语言中的 `defer`关键字用于延迟函数调用的执行，使用
 
 defer 是一个后进先出的结构，多个 defer 语句按照栈的方式执行，最后声明的最先执行。defer 语句执行是在 return 语句之后，函数真正返回之前执行。
 
+defer 函数的执行时机：**在 return 语句执行之后，但在函数实际返回之前**。
+
 ## 基本使用
 
 defer 基本用法：defer func()
@@ -46,7 +48,7 @@ func main() {
 }
 ```
 
-## 常见使用常见
+## 常见使用场景
 
 ### 场景1：关闭文件
 
@@ -137,7 +139,7 @@ func dbOperation() {
 }
 ```
 
-### 场景4：与recover实现异常捕获和处理
+### 场景4：实现异常捕获和处理，panic与recover结合
 
 捕获异常，然后用 defer 结合 recover 来处理异常
 
@@ -182,6 +184,10 @@ func main() {
  **/
 ```
 
+defer + recover 的组合使得函数可以在panic发生时捕获异常并将其转换为普通的错误处理流程。
+
+这在编写库代码或需要保证程序稳定性的场景中非常重要。需要注意的是，`recover`只能在`defer`函数中生效，因为它依赖于`defer`的执行时机。
+
 ### 场景5：记录函数耗时
 
 defer/record_time.go
@@ -215,3 +221,146 @@ func doSomething() {
 	fmt.Println("任务完成")
 }
 ```
+
+### 场景6：性能追踪与日志记录
+
+场景6与场景5有相同的点
+
+defer/track_time_log.go
+
+```go
+package main
+
+import (
+    "fmt"
+    "time"
+)
+
+func trackExecutionTime(name string) func() {
+    start := time.Now()
+    fmt.Printf("开始执行: %s\n", name)
+    
+    // 返回一个闭包作为defer
+    return func() {
+        duration := time.Since(start)
+        fmt.Printf("函数 %s 执行完成，耗时: %v\n", name, duration)
+    }
+}
+
+func importantFunction() {
+    defer trackExecutionTime("importantFunction")()
+    
+    // 模拟耗时操作
+    time.Sleep(100 * time.Millisecond)
+    fmt.Println("重要函数执行中...")
+    time.Sleep(100 * time.Millisecond)
+}
+
+func logFunctionCall() {
+    defer func() {
+        fmt.Println("函数执行完毕，清理工作完成")
+    }()
+    
+    fmt.Println("函数正在执行...")
+    // 模拟可能发生的错误
+    panic("模拟错误")
+}
+
+func main() {
+    importantFunction()
+    fmt.Println("---")
+    logFunctionCall()
+}
+```
+
+在函数开头添加一行`defer trackExecutionTime(...)()`，就能自动获得函数执行时间的追踪信息。与手动在每个返回路径前记录时间相比，这种方式不仅代码更简洁，而且不会遗漏任何执行路径。
+
+## 常见错误用法
+
+### 错误1：忽略defer调用的错误
+
+很多 I/O 操作在关闭时可能返回错误（如`file.Close()`、`conn.Close()`）。简单地使用`defer f.Close()`会忽略这些错误：
+
+```go
+// 错误：忽略Close可能的错误
+func badErrorIgnore(filename string) error {
+    file, err := os.Create(filename)
+    if err != nil {
+        return err
+    }
+    defer file.Close() // Close的错误被忽略
+    
+    _, err = file.WriteString("data")
+    return err
+}
+
+// 正确：处理Close错误
+func goodErrorHandling(filename string) (err error) {
+    file, err := os.Create(filename)
+    if err != nil {
+        return err
+    }
+    defer func() {
+        closeErr := file.Close()
+        if err == nil {
+            err = closeErr // 如果没有其他错误，返回Close错误
+        }
+    }()
+    
+    _, err = file.WriteString("data")
+    return err
+}
+```
+
+### 错误2：defer参数求值的误解
+
+```go
+// 错误：期望defer使用最新值
+func badDeferArgs() {
+    x := 10
+    defer fmt.Println(x) // x=10立即求值
+    
+    x = 20
+    // 输出: 10（不是20）
+}
+
+// 正确：使用闭包获取最新值
+func goodDeferArgs() {
+    x := 10
+    defer func() {
+        fmt.Println(x) // 闭包捕获x的引用
+    }()
+    
+    x = 20
+    // 输出: 20
+}
+```
+
+### 错误3：在循环中使用defer
+
+```go
+// 错误：会导致资源泄漏
+func badLoopDefer() {
+    for i := 0; i < 100; i++ {
+        file, _ := os.Open(fmt.Sprintf("file%d.txt", i))
+        defer file.Close() // 所有文件会在函数结束时才关闭
+    }
+}
+
+// 正确：使用独立函数
+func goodLoopDefer() {
+    for i := 0; i < 100; i++ {
+        processFile(fmt.Sprintf("file%d.txt", i))
+    }
+}
+
+func processFile(filename string) {
+    file, _ := os.Open(filename)
+    defer file.Close() // 每次迭代结束时关闭
+    // 处理文件...
+}
+```
+
+### 错误4：在性能敏感代码中过度使用defer
+
+虽然`defer`的额外开销通常很小（纳秒级别），但在某些极端性能敏感的场景下（如高频交易系统、实时信号处理），每个`defer`调用的额外开销可能会累积。
