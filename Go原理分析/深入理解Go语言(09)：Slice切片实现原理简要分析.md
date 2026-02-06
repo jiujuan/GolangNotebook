@@ -426,5 +426,7 @@ roundupsize(100) = 112  ← 选择最接近的大小类
 ## 参考
 
 - https://golang.design/go-questions/slice/grow/
-- https://juejin.cn/post/7319763315314819083
+- https://www.cnblogs.com/yinbiao/p/15802792.html
 - https://draven.co/golang/docs/part2-foundation/ch03-datastructure/golang-array-and-slice/
+- https://blog.csdn.net/pbrlovejava/article/details/128175941
+

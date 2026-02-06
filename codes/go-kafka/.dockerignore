@@ -1,0 +1,38 @@
+# Git
+.git
+.gitignore
+
+# 构建产物
+bin/
+dist/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# 测试文件
+*_test.go
+coverage.out
+coverage.html
+
+# 文档
+*.md
+LICENSE
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# 本地配置
+.env
+.env.local
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# 日志
+*.log
+logs/

@@ -1,0 +1,11 @@
+# Binary
+bin/
+dist/
+
+# Logs
+*.log
+logs/
+
+# Local env files
+.env
+.env.local
