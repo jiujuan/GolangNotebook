@@ -245,7 +245,7 @@ type g struct {
 	// It is stack.lo+StackGuard on g0 and gsignal stacks.
 	// It is ~0 on other goroutine stacks, to trigger a call to morestackc (and crash).
 	// 记录该goroutine使用的栈
-    stack       stack   // offset known to runtime/cgo
+    stack       stack   // offset known to runtime/cgo，（lo: 栈底, hi: 栈顶，低地址增长
     
 	//下面两个成员用于栈溢出检查，实现栈的自动伸缩，抢占调度也会用到stackguard0
     stackguard0 uintptr // offset known to liblink
@@ -684,10 +684,16 @@ TEXT runtime·rt0_go(SB),NOSPLIT,$0
 	RET
 ```
 
+##  GPM 全局运行示意图
 
+![GPM全局运行示意图](../images/go-GMP-scheduler-process.png)
 
 ## 参考
 
 1. 雨痕 《Go语言学习笔记》 [https://book.douban.com/subject/26832468/](https://book.douban.com/subject/26832468/) 
 2. 深度解密Go语言 [https://qcrao.com/2019/09/02/dive-into-go-scheduler/](https://qcrao.com/2019/09/02/dive-into-go-scheduler/)
 3. https://blog.csdn.net/u010853261/article/details/84790392
+4. https://golang.design/go-questions/sched/what-is/  什么是 scheduler 来自《[Go 程序员面试笔试宝典》*作者*: 饶全成, 欧长坤, 楚秦 等编著
+
+
+
